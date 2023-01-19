@@ -6,7 +6,7 @@ Nodejs service to proxy an incoming Twilio Call to other services
 
 **Twilio -> twilio-call-proxy -> Internal backends**
 
-This service works as a proxy which receives the stream of Twilio ongoing phone calls and pipe them to one more backends so they handle it properly.
+This service works as a proxy which receives the stream of Twilio ongoing phone calls and pipe them to one or more backends so they handle it properly.
 
 The following requirements are supported:
 - Proxy ongoing calls to one or more internal backends

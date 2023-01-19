@@ -1,4 +1,7 @@
 /**
+ * Example of implementation to validate the PIN in an external API
+ * that would also return the proper backend ID / Host to connect the stream of the ongoing twilio call
+ *
 import axios from 'axios'
 import env from '../../env'
 import { baseLogger } from '../../infra/logger'
