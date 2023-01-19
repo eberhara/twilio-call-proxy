@@ -1,0 +1,9 @@
+.idea
+node_modules
+logger
+.eslintcache
+*.log
+output
+dist
+junit.xml
+.eslintcache

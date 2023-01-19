@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "target": "es2017",
+        "module": "commonjs",
+        "outDir": "dist",
+        "strict": true,
+        "sourceMap": false,
+        "typeRoots": ["src/typings", "node_modules/@types"],
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "strictPropertyInitialization": false,
+        "moduleResolution": "node",
+        "rootDir": "./src",
+        "noImplicitAny": true,
+        "resolveJsonModule": true,
+        "paths": {
+            "websocket-stream": ["./src/typings/websocket-stream"]
+        }
+    },
+    "exclude": [
+        "dist",
+        "node_modules"
+    ]
+}

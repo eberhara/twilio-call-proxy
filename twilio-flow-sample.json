@@ -1,0 +1,516 @@
+{
+  "description": "Twilio Call Proxy Flow",
+  "states": [
+    {
+      "name": "Trigger",
+      "type": "trigger",
+      "transitions": [
+        {
+          "event": "incomingMessage"
+        },
+        {
+          "next": "set_variables",
+          "event": "incomingCall"
+        },
+        {
+          "event": "incomingConversationMessage"
+        },
+        {
+          "next": "call_someone",
+          "event": "incomingRequest"
+        },
+        {
+          "event": "incomingParent"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 520,
+          "y": -1160
+        }
+      }
+    },
+    {
+      "name": "connect_proxy",
+      "type": "fork-stream",
+      "transitions": [
+        {
+          "next": "play_beep",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1540,
+          "y": 2100
+        },
+        "stream_name": "Test",
+        "stream_parameters": [
+          {
+            "value": "{{widgets.verify_pin.parsed.backendIds}}",
+            "key": "backendIds"
+          },
+          {
+            "value": "{{widgets.verify_pin.parsed.backendHosts}}",
+            "key": "backendHosts"
+          },
+          {
+            "value": "{{flow.sid}}",
+            "key": "executionId"
+          }
+        ],
+        "stream_transport_type": "websocket",
+        "stream_action": "start",
+        "stream_track": "inbound_track",
+        "stream_url": "wss://{{widgets.set_variables.WS_PROXY_HOST}}/media"
+      }
+    },
+    {
+      "name": "call_someone",
+      "type": "make-outgoing-call-v2",
+      "transitions": [
+        {
+          "next": "set_variables",
+          "event": "answered"
+        },
+        {
+          "next": "debug_message",
+          "event": "busy"
+        },
+        {
+          "next": "debug_message",
+          "event": "noAnswer"
+        },
+        {
+          "next": "debug_message",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "machine_detection_speech_threshold": "2400",
+        "detect_answering_machine": false,
+        "send_digits": "",
+        "sip_auth_username": "",
+        "offset": {
+          "x": 530,
+          "y": -650
+        },
+        "recording_status_callback": "",
+        "sip_auth_password": "",
+        "recording_channels": "mono",
+        "timeout": 60,
+        "machine_detection": "Enable",
+        "trim": "do-not-trim",
+        "record": false,
+        "machine_detection_speech_end_threshold": "1200",
+        "machine_detection_timeout": "30",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "machine_detection_silence_timeout": "5000"
+      }
+    },
+    {
+      "name": "debug_message",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent"
+        },
+        {
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 510,
+          "y": -10
+        },
+        "service": "{{trigger.message.InstanceSid}}",
+        "channel": "{{trigger.message.ChannelSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Error"
+      }
+    },
+    {
+      "name": "conversation",
+      "type": "gather-input-on-call",
+      "transitions": [
+        {
+          "next": "check_call_still_alive",
+          "event": "keypress"
+        },
+        {
+          "next": "check_call_still_alive",
+          "event": "speech"
+        },
+        {
+          "next": "check_call_still_alive",
+          "event": "timeout"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "speech_timeout": "30",
+        "offset": {
+          "x": 1540,
+          "y": 2630
+        },
+        "loop": 1,
+        "finish_on_key": "#",
+        "say": "",
+        "language": "en-GB",
+        "stop_gather": false,
+        "gather_language": "en",
+        "profanity_filter": "true",
+        "timeout": 30
+      }
+    },
+    {
+      "name": "end_inactivity",
+      "type": "say-play",
+      "transitions": [
+        {
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": 1740,
+          "y": 440
+        },
+        "loop": 1,
+        "say": "Ending call due to inactivity.",
+        "language": "en-GB"
+      }
+    },
+    {
+      "name": "gather_pin",
+      "type": "gather-input-on-call",
+      "transitions": [
+        {
+          "next": "verify_pin",
+          "event": "keypress"
+        },
+        {
+          "event": "speech"
+        },
+        {
+          "next": "end_inactivity",
+          "event": "timeout"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": 1380,
+          "y": 430
+        },
+        "hints": "",
+        "finish_on_key": "*",
+        "say": "Please enter your code. Press star to start again.",
+        "language": "en-GB",
+        "stop_gather": true,
+        "speech_model": "numbers_and_commands",
+        "profanity_filter": "true",
+        "timeout": 30,
+        "number_of_digits": 9,
+        "speech_timeout": "auto",
+        "loop": 1,
+        "gather_language": "en-GB"
+      }
+    },
+    {
+      "name": "verify_pin",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "user-authenticated",
+          "event": "success"
+        },
+        {
+          "next": "say_api_out",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1400,
+          "y": 750
+        },
+        "method": "POST",
+        "content_type": "application/json;charset=utf-8",
+        "body": "{ \"pin\": \"{{widgets.gather_pin.Digits}}\", \"callerId\": \"{{contact.channel.address}}\" }",
+        "url": "https://{{widgets.set_variables.API_HOST}}/validate-pin"
+      }
+    },
+    {
+      "name": "set_variables",
+      "type": "set-variables",
+      "transitions": [
+        {
+          "next": "check_caller_id",
+          "event": "next"
+        }
+      ],
+      "properties": {
+        "variables": [
+          {
+            "value": "a6dc-2804-7f4-c780-3941-8d3f-1388-1d0c-66d2.ngrok.io",
+            "key": "WS_PROXY_HOST"
+          },
+          {
+            "value": "a6dc-2804-7f4-c780-3941-8d3f-1388-1d0c-66d2.ngrok.io",
+            "key": "API_HOST"
+          }
+        ],
+        "offset": {
+          "x": 1310,
+          "y": -720
+        }
+      }
+    },
+    {
+      "name": "say_api_out",
+      "type": "say-play",
+      "transitions": [
+        {
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": 3010,
+          "y": 830
+        },
+        "loop": 1,
+        "say": "There was an error when connecting you. Please try again later.",
+        "language": "en-GB"
+      }
+    },
+    {
+      "name": "user-authenticated",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "check-user-blocked",
+          "event": "noMatch"
+        },
+        {
+          "next": "say_connecting",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to true",
+              "arguments": [
+                "{{widgets.verify_pin.parsed.authenticated}}"
+              ],
+              "type": "equal_to",
+              "value": "true"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verify_pin.parsed.authenticated}}",
+        "offset": {
+          "x": 1580,
+          "y": 1120
+        }
+      }
+    },
+    {
+      "name": "say_user_unauthenticated",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "gather_pin",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": 1120,
+          "y": 1770
+        },
+        "loop": 1,
+        "say": "The code was not recognised.",
+        "language": "en-GB"
+      }
+    },
+    {
+      "name": "say_connecting",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "connect_proxy",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": 1740,
+          "y": 1800
+        },
+        "loop": 1,
+        "say": "Connecting you now.",
+        "language": "en-GB"
+      }
+    },
+    {
+      "name": "play_beep",
+      "type": "say-play",
+      "transitions": [
+        {
+          "next": "conversation",
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "play": "https://www.soundjay.com/buttons/beep-02.wav",
+        "voice": "default",
+        "offset": {
+          "x": 1540,
+          "y": 2360
+        },
+        "loop": 1,
+        "language": "en-US"
+      }
+    },
+    {
+      "name": "check_call_still_alive",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "conversation",
+          "event": "success"
+        },
+        {
+          "next": "say_api_out",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 2190,
+          "y": 3040
+        },
+        "method": "GET",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "url": "https://{{widgets.set_variables.WS_PROXY_HOST}}/executions/{{flow.sid}}/connected"
+      }
+    },
+    {
+      "name": "check_caller_id",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "next": "check_user_blocked",
+          "event": "success"
+        },
+        {
+          "next": "gather_pin",
+          "event": "failed"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "x": 1320,
+          "y": -260
+        },
+        "method": "GET",
+        "content_type": "application/x-www-form-urlencoded;charset=utf-8",
+        "url": "https://{{widgets.set_variables.API_HOST}}/blocked-callers/{{contact.channel.address}}"
+      }
+    },
+    {
+      "name": "check_user_blocked",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "gather_pin",
+          "event": "noMatch"
+        },
+        {
+          "next": "say_caller_blocked",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to true",
+              "arguments": [
+                "{{widgets.check_caller_id.parsed.blocked}}"
+              ],
+              "type": "equal_to",
+              "value": "true"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.check_caller_id.parsed.blocked}}",
+        "offset": {
+          "x": 930,
+          "y": 20
+        }
+      }
+    },
+    {
+      "name": "say_caller_blocked",
+      "type": "say-play",
+      "transitions": [
+        {
+          "event": "audioComplete"
+        }
+      ],
+      "properties": {
+        "voice": "alice",
+        "offset": {
+          "x": 570,
+          "y": 1430
+        },
+        "loop": 1,
+        "say": "Please contact support. Goodbye.",
+        "language": "en-GB"
+      }
+    },
+    {
+      "name": "check-user-blocked",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "next": "say_user_unauthenticated",
+          "event": "noMatch"
+        },
+        {
+          "next": "say_caller_blocked",
+          "event": "match",
+          "conditions": [
+            {
+              "friendly_name": "If value equal_to true",
+              "arguments": [
+                "{{widgets.verify_pin.parsed.blocked}}"
+              ],
+              "type": "equal_to",
+              "value": "true"
+            }
+          ]
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.verify_pin.parsed.blocked}}",
+        "offset": {
+          "x": 1330,
+          "y": 1420
+        }
+      }
+    }
+  ],
+  "initial_state": "Trigger",
+  "flags": {
+    "allow_concurrent_calls": true
+  }
+}

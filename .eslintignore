@@ -1,0 +1,4 @@
+dist
+**/*.spec.ts
+**/__tests__/*
+**/*.d.ts
